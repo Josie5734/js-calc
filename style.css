@@ -1,0 +1,37 @@
+body {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.calculator {
+  padding: 10px;
+  background-color: pink;
+  border-radius: 15px;
+}
+
+.buttons {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+}
+
+.c-btn {
+  height: 50px;
+
+  border: none;
+  border-radius: 12px;
+
+  cursor: pointer;
+}
+
+.double {
+  grid-column: span 2;
+}
+
+.display {
+  height: 70px;
+  background-color: green;
+  margin-bottom: 10px;
+  border-radius: 5px;
+}
