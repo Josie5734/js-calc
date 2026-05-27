@@ -1,6 +1,6 @@
 # JS-Calc
 
----
+[Github Pages Link](https://josie5734.github.io/js-calc/)
 
 This is a small simple calculator I made in JavaScript in an afternoon
 
