@@ -6,6 +6,10 @@ let justCalced = false //store if just calculated so it knows whether to overrid
 
 const operators = ["+", "-", "*", "/"];
 const numbers = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"]
+const displaySymbols = { //for replacing divde and multiply symbols when displaying
+  "/": "÷",
+  "*": "×"
+}
 
 const calculator = document.getElementById("calculator"); //get whole calc div
 //event listener for whole calculator
@@ -28,7 +32,6 @@ function parseInput(i) {
       break;
 
     case ("+"): //pressed an operator
-    case ("-"):
     case ("*"):
     case ("/"):
       justCalced = false; //set not just calculated
@@ -38,6 +41,22 @@ function parseInput(i) {
       }
       expression.push(i); //add operator to list
       break;
+
+    case ("-"): //special exception for "-" for negative numbers
+      justCalced = false;
+      if (currentNum !== "") { //if anything in currentNum
+        expression.push(currentNum); //do normal operator code
+        currentNum = "";
+        expression.push(i);
+      } else { //else (special case for negative numbers)
+        //if no previous expression value or the previous expression value was an operator
+        if (expression.length === 0 || operators.includes(expression.at(-1))) {
+          //the "-" will be for denoting a negative number
+          currentNum += i; //so add it to currentNum
+        }
+      }
+      break;
+
 
     case ("clear"): //clear
       justCalced = false; //set not just calculated
@@ -77,6 +96,10 @@ function parseInput(i) {
 function calculate() {
   if (operators.includes(expression.at(-1))) { //if last item in input is an operator 
     expression.pop(); //cut it off and ignore
+  }
+
+  if (operators.includes(expression[0])) { //if expression starts with an operator
+    outputError();
   }
 
   //go Left to Right for divide and multiply
@@ -142,11 +165,27 @@ function opDivide(a, b) {
 function updateDisplay() {
   const display = document.getElementById("display"); //get element
 
-  display.textContent = expression.join(" ") + (currentNum !== "" ? " " + currentNum : "");
+  let output = "0";
+  //if there is any input in expression or current num
+  if (expression.length > 0 || currentNum.length > 0) { //type it into the display
+    output = expression.map(item => displaySymbols[item] || item).join(" "); //copy expression to output 
+    //+ replace divide/multiply symbols and separate with spaces
+
+    //add the currentNum if there is one
+    output = output + (currentNum !== "" ? " " + currentNum : "");
+  }
+
+  display.textContent = output; //set output text in display
+
+  display.scrollLeft = display.scrollWidth; //auto scroll to the right
 }
 
-
-
+//output an error message to the screen
+function outputError() {
+  expression = []; //reset expression]
+  expression.push("ERROR"); //put in only error
+  updateDisplay(); //update
+}
 
 /* 
 TODO:
