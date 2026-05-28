@@ -1,15 +1,30 @@
+/*
+--- Global Vars ---
+*/
+
 let expression = []; //store input in a list
 //where each number is one item and each operator is one item
 ////e.g ["124","+","737","-","2387"]
 let currentNum = ""; //currently typed number before its committed to expression
 let justCalced = false //store if just calculated so it knows whether to override
 
-const operators = ["+", "-", "*", "/"];
-const numbers = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"]
+const operators = ["+", "-", "*", "/"]; //reference for operators 
+const numbers = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"]; //reference for numbers as string
 const displaySymbols = { //for replacing divde and multiply symbols when displaying
   "/": "÷",
   "*": "×"
-}
+};
+const keyboardKeys = [ //keyboard inputs
+  "enter",
+  "backspace",
+  "delete"
+];
+
+
+
+/* 
+--- Event Listeners / Input Events ---
+*/
 
 const calculator = document.getElementById("calculator"); //get whole calc div
 //event listener for whole calculator
@@ -18,6 +33,19 @@ calculator.addEventListener("click", (event) => {
   if (!btn) return; //exit if no button nearby 
 
   parseInput(btn.dataset.value); //pass value to be parsed
+})
+
+document.addEventListener("keydown", (event) => {
+  let key = event.key.toLowerCase(); //get key pressed as a lowercase string
+
+  //only act on numbers, operators, enter and backspace
+  if (numbers.includes(key) || operators.includes(key) || keyboardKeys.includes(key)) {
+    //translate keys 
+    key = (key === "enter") ? "=" : key;
+    key = (key === "delete") ? "clear" : key;
+
+    parseInput(key); //handle input
+  }
 })
 
 //get button clicks and figure out how to record them
@@ -42,21 +70,17 @@ function parseInput(i) {
       expression.push(i); //add operator to list
       break;
 
-    case ("-"): //special exception for "-" for negative numbers
+    case ("-"): //special exception for "-" to allow for negative numbers
       justCalced = false;
       if (currentNum !== "") { //if anything in currentNum
         expression.push(currentNum); //do normal operator code
         currentNum = "";
         expression.push(i);
       } else { //else (special case for negative numbers)
-        //if no previous expression value or the previous expression value was an operator
-        if (expression.length === 0 || operators.includes(expression.at(-1))) {
-          //the "-" will be for denoting a negative number
-          currentNum += i; //so add it to currentNum
-        }
+        //the "-" will be for denoting a negative number
+        currentNum += i; //so add it to currentNum
       }
       break;
-
 
     case ("clear"): //clear
       justCalced = false; //set not just calculated
