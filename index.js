@@ -7,6 +7,7 @@ let expression = []; //store input in a list
 ////e.g ["124","+","737","-","2387"]
 let currentNum = ""; //currently typed number before its committed to expression
 let justCalced = false //store if just calculated so it knows whether to override
+let bracketCount = 0; //number of open brackets
 
 const operators = ["+", "-", "*", "/"]; //reference for operators 
 const numbers = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"]; //reference for numbers as string
@@ -17,7 +18,9 @@ const displaySymbols = { //for replacing divde and multiply symbols when display
 const keyboardKeys = [ //keyboard inputs
   "enter",
   "backspace",
-  "delete"
+  "delete",
+  "(",
+  ")",
 ];
 
 
@@ -48,15 +51,26 @@ document.addEventListener("keydown", (event) => {
   }
 })
 
+
+
+/*
+--- Handle Input ---
+*/
+
+//short function to push currentNum easier
+function pushCurrentNum() {
+  expression.push(currentNum);
+  currentNum = "";
+}
+
 //get button clicks and figure out how to record them
 function parseInput(i) {
 
   switch (i) { //handle inputs
     case "=": //pressed equals
       justCalced = true; //set just calculated
-      expression.push(currentNum); //add current num to list
-      currentNum = ""; //reset current num
-      calculate(); //do calculation
+      pushCurrentNum(); //add current num to list
+      expression = checkExpression(expression); //do calculation
       break;
 
     case ("+"): //pressed an operator
@@ -64,22 +78,45 @@ function parseInput(i) {
     case ("/"):
       justCalced = false; //set not just calculated
       if (currentNum !== "") { //if there is a number currently
-        expression.push(currentNum); //add current num to list
-        currentNum = ""; //reset current num
+        pushCurrentNum(); //add current num to list
       }
       expression.push(i); //add operator to list
       break;
 
     case ("-"): //special exception for "-" to allow for negative numbers
-      justCalced = false;
-      if (currentNum !== "") { //if anything in currentNum
-        expression.push(currentNum); //do normal operator code
-        currentNum = "";
+      if (justCalced) { //if just calced
+        expression.push(i); //add operator 
+        justCalced = false; //reset
+      } else if (currentNum !== "") { //if anything in currentNum
+        pushCurrentNum(); //do normal operator code
         expression.push(i);
       } else { //else (special case for negative numbers)
         //the "-" will be for denoting a negative number
         currentNum += i; //so add it to currentNum
       }
+      break;
+
+    case ("("): //open bracket 
+      if (justCalced) { //if just calced
+        expression.push("*"); //push *
+        justCalced = false; //reset
+      } else if (currentNum !== "") { //elseif there is a current number
+        pushCurrentNum(); //push to expression
+        expression.push("*"); //treat bracket as multiplication and push *
+      }
+      expression.push("("); //add bracket
+      bracketCount++; //increment bracket depth
+      break;
+
+    case (")"): //close bracket 
+      if (bracketCount > 0) { //if there is an open bracket
+        if (currentNum !== "") { //push and reset currentNum if there is one
+          pushCurrentNum();
+        }
+        expression.push(")"); //add bracket
+        bracketCount--; //decrement bracket depth
+      }
+
       break;
 
     case ("clear"): //clear
@@ -109,6 +146,9 @@ function parseInput(i) {
         expression = [];
         justCalced = false;
       }
+      if (expression.at(-1) === ")") { //add multiply if inputting number after closebracket
+        expression.push("*");
+      }
       currentNum += i; //add i to currentNum
       break;
   }
@@ -116,16 +156,52 @@ function parseInput(i) {
   updateDisplay();
 }
 
-//do the calculations stored
-function calculate() {
-  if (operators.includes(expression.at(-1))) { //if last item in input is an operator 
-    expression.pop(); //cut it off and ignore
+
+
+/*
+--- Calculating ---
+*/
+
+//check expression for errors
+function checkExpression(exp) {
+  //error checking
+  if (operators.includes(exp.at(-1))) { //if last item in input is an operator 
+    exp.pop(); //cut it off and ignore
   }
 
-  if (operators.includes(expression[0])) { //if expression starts with an operator
+  if (operators.includes(exp[0])) { //if exp starts with an operator
     outputError();
   }
 
+  while (bracketCount > 0) { //if there are any unmatched brackets
+    exp.splice(exp.findLastIndex(b => b === "("), 1); //remove the last bracket in the expression
+    bracketCount--; //decrement bracket depth
+  }
+
+  //if passed all checks and prepared, send to be calculated
+  if (exp.includes("(") || exp.includes(")")) { //do brackets first if any 
+    exp = handleBrackets(exp);
+  }
+
+  return calculateExpression(exp);
+}
+
+//handle brackets in expression
+function handleBrackets(exp) {
+  while (exp.includes("(") && exp.includes(")")) { //while brackets in exp 
+    const cb = exp.findIndex(b => b === ")"); //get index of first appearing close bracket 
+    const ob = exp.slice(0, cb).findLastIndex(b => b === "("); //get index of matching open bracket
+
+    const e = exp.slice(ob + 1, cb) //expression within the brackets
+    const r = calculateExpression(e); //get result of expression e 
+    exp.splice(ob, cb - ob + 1, r.toString()); //replace brackets and contained expression with result
+  }
+
+  return exp;
+}
+
+//calculate the given expression (exp)
+function calculateExpression(exp) {
   //go Left to Right for divide and multiply
   //then go Left to Right for add and subtract 
   const precedence = [["*", "/"], ["+", "-"]]; //operators in order of precendence
@@ -133,11 +209,11 @@ function calculate() {
   for (const ops of precedence) { //for each set of operators
     let i = 0; //counter
 
-    while (i < expression.length) { //loop through input list
-      if (ops.includes(expression[i])) { //if value is operator of current precedence 
-        const v1 = Number(expression[i - 1]); //value to the left 
-        const op = expression[i]; //operator 
-        const v2 = Number(expression[i + 1]); //value to the right 
+    while (i < exp.length) { //loop through input list
+      if (ops.includes(exp[i])) { //if value is operator of current precedence 
+        const v1 = Number(exp[i - 1]); //value to the left 
+        const op = exp[i]; //operator 
+        const v2 = Number(exp[i + 1]); //value to the right 
 
         let result; //store result of operation 
 
@@ -157,7 +233,7 @@ function calculate() {
         }
 
         //replace the v1,op,v2 with result 
-        expression.splice(i - 1, 3, result.toString());
+        exp.splice(i - 1, 3, result.toString());
 
         i--; //move back index to account for shorter array 
       } else { //else value not operator, move to next one
@@ -165,6 +241,8 @@ function calculate() {
       }
     }
   }
+
+  return exp;
 }
 
 //operations
@@ -185,6 +263,11 @@ function opDivide(a, b) {
   return a / b;
 }
 
+
+
+/*
+--- Display ---
+*/
 
 function updateDisplay() {
   const display = document.getElementById("display"); //get element
@@ -210,8 +293,3 @@ function outputError() {
   expression.push("ERROR"); //put in only error
   updateDisplay(); //update
 }
-
-/* 
-TODO:
-styling and stuff
-*/
